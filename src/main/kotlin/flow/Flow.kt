@@ -1,68 +1,99 @@
 package flow
 
-import example.SimpleDispatcher
 import java.util.*
 
-class Flow<T> private constructor(private val source: Producer<T>): Producer<T>(), Consumer<T> {
+class Flow<in T, U> private constructor(
+        private val source: Producer<T>,
+        private val operator: Operator<T, U>)
+    : Consumer<T>, Producer<U>() {
+
+    private val itemsToEmit : Queue<U> = LinkedList<U>()
+    private var demand: Long = 0
+    private var isSourceComplete = false
+    private var amIComplete = false
+
     init {
         source.subscribe(this)
+        operator.setAddItemListener {
+            itemsToEmit.offer(it)
+            emit()
+        }
     }
-    override val dispatcher: Dispatcher<T> = SimpleDispatcher()
-    private val itemsToEmit : Queue<T> = LinkedList()
-    private var howMany: Long = 0
-    private var isSourceComplete = false
 
-    override fun getNext(howMany: Long) {
-        this.howMany += howMany
-        source.getNext(howMany)
+    override fun getNext(demand: Long) {
+        if (amIComplete) {
+            throw IllegalStateException("Flow has been declared complete")
+        }
+        this.demand += demand
+        source.getNext(demand)
         emit()
     }
 
     private fun emit(){
-        while (itemsToEmit.isNotEmpty() && howMany > 0) {
-            dispatcher.onNext(itemsToEmit.poll())
-            howMany--
+        if (amIComplete) {
+            throw IllegalStateException("Flow has been declared complete")
         }
-        if (isSourceComplete && howMany == 0L) {
+        while (itemsToEmit.isNotEmpty() && demand > 0) {
+            dispatcher.onNext(itemsToEmit.poll())
+            demand--
+        }
+        // our source is complete, so we're not going to get any more to fill the demand
+        // we should keep going until the demand is zero
+        if (isSourceComplete && (itemsToEmit.isEmpty())) {
             dispatcher.onComplete()
+            amIComplete = true
         }
     }
 
-    fun <U> map(mapper :(T) -> U): Flow<U> {
+    fun subscribe(onNextCallback: ((U) -> Unit)? = null, onCompleteCallback: (() -> Unit)? = null): Flow<T, U> {
+        dispatcher.addConsumer(object : Consumer<U> {
+            override fun onNext(item: U) {
+                onNextCallback?.let { it(item) }
+            }
 
+            override fun onComplete() {
+                onCompleteCallback?.let { it() }
+            }
+        })
+        return this
     }
 
     /**
      * receiving data from upstream
      */
     override fun onNext(item: T) {
-        itemsToEmit.offer(item)
-        emit()
-        println("Consumer: $item")
+        if (isSourceComplete) {
+            throw IllegalStateException("Source has been declared complete but has emitted additional items")
+        }
+        operator.apply(item)
     }
 
     override fun onComplete() {
-        println("Complete")
+//        println("${this::class.java.name}: Complete")
         isSourceComplete = true
+//        emit()
+    }
+
+    fun <V> map(transform: (U) -> V): Flow<U, V> {
+        return Flow(this, BaseOperator(transform))
     }
 
     companion object {
-        fun <T> fromIterable(source: Iterable<T>): Flow<T> {
+        fun <T> fromIterable(source: Iterable<T>): Flow<T, T> {
             val iterator = source.iterator()
             return Flow(object : Producer<T>(){
-                override val dispatcher: Dispatcher<T> = SimpleDispatcher()
-
                 override fun getNext(howMany: Long) {
                     for (i in 0..howMany) {
                         if (iterator.hasNext()) {
                             dispatcher.onNext(iterator.next())
                         }else{
                             dispatcher.onComplete()
+                            break
                         }
                     }
                 }
 
-            })
+            }, PassthroughOperator())
         }
     }
 }

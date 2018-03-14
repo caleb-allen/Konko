@@ -15,7 +15,7 @@ class IntTest{
 
 class IntConsumer(val name: String) : Consumer<Int> {
     override fun onNext(item: Int) {
-        println("Consumer $name: $item")
+//        println("Consumer $name: $item")
     }
 
     override fun onComplete() {

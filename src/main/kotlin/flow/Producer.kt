@@ -1,9 +1,12 @@
 package flow
 
-abstract class Producer<T> {
-    protected abstract val dispatcher: Dispatcher<T>
+import example.ConcurrentDispatcher
+import example.SimpleDispatcher
 
-    fun subscribe(consumer: Consumer<T>) {
+abstract class Producer<T> {
+    protected val dispatcher: Dispatcher<T> = SimpleDispatcher()
+
+    internal fun subscribe(consumer: Consumer<T>) {
         dispatcher.addConsumer(consumer)
     }
 
