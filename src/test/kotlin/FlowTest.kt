@@ -1,6 +1,10 @@
 import flow.Flow
+import kotlinx.coroutines.experimental.channels.actor
+import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.runBlocking
 import org.junit.Test
 import java.util.*
+import kotlin.system.measureTimeMillis
 
 class FlowTest {
     @Test
@@ -35,5 +39,30 @@ class FlowTest {
 //                    println(it)
                 })
                 .getNext(20_000_000)
+    }
+
+    @Test fun testActor() = runBlocking {
+        val addFive = actor<Int>{
+            for (msg in channel) {
+
+            }
+        }
+
+        val printNums = actor<Int>{
+            for (msg in channel) {
+                println(msg)
+            }
+        }
+        val time = measureTimeMillis {
+            val items = listOf(0, 1, 2, 3, 4, 5)
+            val jobs = List(items.size) {
+                launch { printNums.send(it) }
+            }
+            jobs.forEach { it.join() }
+        }
+
+        printNums.close()
+
+        println("Took $time ms")
     }
 }
