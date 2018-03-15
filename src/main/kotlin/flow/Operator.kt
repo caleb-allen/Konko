@@ -11,12 +11,7 @@ interface Operator {
  */
 abstract class IntermediateOperator<in T, out U>(private val transform: (T) -> U): Operator{
     suspend fun apply(upstream: ReceiveChannel<T>): U {
-//        println("Asked to apply operator")
-        val result = upstream.receive()
-//        println("Got result to apply operator: $result")
-        val transformed = transform(result)
-//        println("Transformed result: $transformed")
-        return transformed
+        return transform(upstream.receive())
     }
 }
 

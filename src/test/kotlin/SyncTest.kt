@@ -1,5 +1,4 @@
 import flow.Flow
-import kotlinx.coroutines.experimental.channels.asReceiveChannel
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
@@ -11,22 +10,16 @@ class SyncTest {
         val a = produce {
             var i = 0
             while (true) {
-                delay(400)
+                println("Sending $i")
                 send(i++)
             }
         }
-//        val b = a.asReceiveChannel()
-
-//        while (!b.isClosedForReceive) {
-//            println(b.receive())
-//        }
-        println("Now with flow")
         Flow.just(a)
                 .map {
-                    it + 5
+                   runBlocking { delay(1000) }
+                    it * it
                 }
                 .forEach { println(it) }
-//        delay(1000)
         println("Done")
     }
 }
