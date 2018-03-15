@@ -5,7 +5,7 @@ import kotlinx.coroutines.experimental.runBlocking
 
 
 class Flow<in T, U>(
-        private val upstreamChannel: ReceiveChannel<T>, private val oper: IntermediateOperator<T, U>):
+        upstreamChannel: ReceiveChannel<T>, oper: IntermediateOperator<T, U>):
         ReceiveChannel<U> by operatorDelegate(oper, upstreamChannel){
 
     fun <V> map(mapper: (U) -> V): Flow<U, V> {
@@ -15,13 +15,23 @@ class Flow<in T, U>(
     fun forEach(block: (U) -> Unit) {
         runBlocking {
             while (!isClosedForReceive) {
-                block(receive())
+                try {
+                    block(receive())
+                } catch (e: ClosedReceiveChannelException) {
+//                    e.printStackTrace()
+                    println("Tried to receive objects; channel was closed")
+                }
             }
+            println("Channel closed.")
         }
     }
     companion object {
         fun <T> just(iterable: Iterable<T>): Flow<T, T>{
             return Flow(iterable.asReceiveChannel(), PassthroughOperator())
+        }
+
+        fun <T> just(receiveChannel: ReceiveChannel<T>): Flow<T, T>{
+            return Flow(receiveChannel, PassthroughOperator())
         }
     }
 }
@@ -29,6 +39,25 @@ class Flow<in T, U>(
 // provides
 fun <T, U> operatorDelegate(oper: IntermediateOperator<T, U>, upstreamChannel: ReceiveChannel<T>):ReceiveChannel<U> {
     return produce(block = {
-        send(oper.apply(upstreamChannel))
+        while (!upstreamChannel.isClosedForReceive) {
+//            println("Requested from downstream")
+            val result = oper.apply(upstreamChannel)
+//            println("sending result to downstream: $result")
+            send(result)
+        }
+        println("Upstream channel closed.")
     })
 }
+
+// provides
+//fun <T, U> receiveChannelOperatorDelegate(oper: IntermediateOperator<T, U>, upstreamChannel: ReceiveChannel<T>):ReceiveChannel<U> {
+//    produce(block = {
+//        println("Requested from downstream")
+//        val result = oper.apply(upstreamChannel)
+//        println("Emitting result: $result")
+//        send(result)
+//    })
+//
+////    Cha
+//}
+//
