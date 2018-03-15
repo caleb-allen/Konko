@@ -1,20 +1,34 @@
 package flow
 
 import kotlinx.coroutines.experimental.channels.*
-import java.util.*
+import kotlinx.coroutines.experimental.runBlocking
 
 
-open class Flow<T, U>(
-        private val upstreamChannel: ReceiveChannel<T>,
-        private val oper: Operator<T, U>){
+class Flow<in T, U>(
+        private val upstreamChannel: ReceiveChannel<T>, private val oper: IntermediateOperator<T, U>):
+        ReceiveChannel<U> by operatorDelegate(oper, upstreamChannel){
 
-    val downstreamChannel = produce<U> (block = {
-        val upstreamQueue: Queue<T> = LinkedList()
-        for (i in 0 until oper.batchSize) {
-            upstreamQueue.offer(upstreamChannel.receive())
+    fun <V> map(mapper: (U) -> V): Flow<U, V> {
+        return Flow(this, StatelessOperator(mapper))
+    }
+
+    fun forEach(block: (U) -> Unit) {
+        runBlocking {
+            while (!isClosedForReceive) {
+                block(receive())
+            }
         }
-        val result = oper.apply(upstreamQueue)
-        send(result)
+    }
+    companion object {
+        fun <T> just(iterable: Iterable<T>): Flow<T, T>{
+            return Flow(iterable.asReceiveChannel(), PassthroughOperator())
+        }
+    }
+}
+
+// provides
+fun <T, U> operatorDelegate(oper: IntermediateOperator<T, U>, upstreamChannel: ReceiveChannel<T>):ReceiveChannel<U> {
+    return produce(block = {
+        send(oper.apply(upstreamChannel))
     })
 }
-    //TODO adaptive flow types with different SendChannel implementations for backpressure

@@ -1,6 +1,6 @@
 package example
 
-import flow.Dispatcher
+import old.Dispatcher
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import java.util.*

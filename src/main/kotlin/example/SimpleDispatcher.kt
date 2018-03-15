@@ -1,6 +1,6 @@
 package example
 
-import flow.Dispatcher
+import old.Dispatcher
 
 /**
  * Simple dispatcher which emits every item to every consumer

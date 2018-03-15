@@ -1,7 +1,7 @@
 package example
 
-import flow.Processor
-import flow.Producer
+import old.Processor
+import old.Producer
 import java.util.*
 
 class IntProducer : Producer<Int>() {

@@ -1,6 +1,5 @@
-package flow
+package old
 
-import example.ConcurrentDispatcher
 import example.SimpleDispatcher
 
 abstract class Producer<T> {

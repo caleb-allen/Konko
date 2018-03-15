@@ -1,5 +1,5 @@
 import example.IntProducer
-import flow.Consumer
+import old.Consumer
 import org.junit.Test
 
 class IntTest{

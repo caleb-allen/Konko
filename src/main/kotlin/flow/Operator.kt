@@ -1,21 +1,31 @@
 package flow
 
-interface Operator<in T, U> {
-    val batchSize: Int
-    fun apply(items: Collection<T>): U
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
+
+interface Operator {
+    val isStateful: Boolean
 }
 
-class BaseOperator<in T, U>(val transform: (T) -> U,
-                            override val batchSize: Int = 1): Operator<T, U>{
-    // can't be a 1 to 1 apply because we don't know what the transform wants to do with it
-    override fun apply(items: Collection<T>): U{
-        if (items.size != batchSize) {
-            throw IllegalStateException("Sent items larger than batch size\nBatch Size: $batchSize\n" +
-                    "Collection Size: ${items.size}")
-        }
-        val item = items.first()
-        return transform(item)
+/**
+ * applies lambda transform expression to received stream.
+ */
+abstract class IntermediateOperator<in T, out U>(private val transform: (T) -> U): Operator{
+    suspend fun apply(items: ReceiveChannel<T>): U {
+        return transform(items.receive())
     }
-
-
 }
+
+open class TerminalOperator<in T> : Operator {
+    override val isStateful: Boolean = true
+}
+
+open class StatelessOperator<in T, out U>(transform: (T) -> U): IntermediateOperator<T, U>(transform){
+    override val isStateful: Boolean = false
+}
+
+open class StatefulOperator<in T, out U>(transform: (T) -> U): IntermediateOperator<T, U>(transform){
+    override val isStateful: Boolean = true
+}
+
+
+class PassthroughOperator<T> : StatelessOperator<T, T>({ it })
