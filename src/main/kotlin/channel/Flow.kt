@@ -12,14 +12,13 @@ import kotlinx.coroutines.experimental.runBlocking
  * and then they have an <In> and <Out> types or something
  *
  *
- * TODO maybe set Flow as an interface instead, and Operator is where all the meat of it happens
+ * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
  */
-open class Flow<out T> internal constructor(
-        // this channel should NOT be just the parent--should be parent combined with an operator
-        upstreamChannel: ReceiveChannel<T>):
-        ReceiveChannel<T> by upstreamChannel{
+class Flow/*<T, U>(operator: IntermediateOperator<T, U>): IntermediateOperator<T, U> by operator*/{
 
-    fun <U> map(mapper: (T) -> U): Flow<U> {
+
+
+    /*fun <U> map(mapper: (T) -> U): Flow<U> {
         return Flow(StatelessOperator(this, mapper).downstream)
     }
 
@@ -35,14 +34,18 @@ open class Flow<out T> internal constructor(
             }
             println("Channel closed.")
         }
-    }
+    }*/
     companion object {
-        fun <T> just(iterable: Iterable<T>): Flow<T>{
-            return Flow(iterable.asReceiveChannel())
+        fun <T, U> map(mapper: (T) -> U) {
+
         }
 
-        fun <T> just(receiveChannel: ReceiveChannel<T>): Flow<T>{
-            return Flow(receiveChannel)
-        }
+//        fun <T> from(iterable: Iterable<T>): Flow<T>{
+//            return Flow(iterable.asReceiveChannel())
+//        }
+//
+//        fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
+//            return Flow(receiveChannel)
+//        }
     }
 }

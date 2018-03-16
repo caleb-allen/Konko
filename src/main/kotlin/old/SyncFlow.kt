@@ -4,7 +4,7 @@
 //
 //class SyncFlow<in T, U> private constructor(
 //        private val source: Producer<T>,
-//        private val operator: Operator<T, U>)
+//        private val operator: TerminalOperator<T, U>)
 //    : Consumer<T>, Producer<U>() {
 //
 //    private val itemsToEmit : Queue<U> = LinkedList<U>()

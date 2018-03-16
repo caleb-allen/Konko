@@ -1,50 +1,70 @@
 package channel
 
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
-import kotlinx.coroutines.experimental.channels.produce
-import kotlinx.coroutines.experimental.launch
+import kotlinx.coroutines.experimental.channels.SendChannel
+import kotlinx.coroutines.experimental.runBlocking
 
-interface Operator {
-    val isStateful: Boolean
-}
 
-/**
- * applies lambda transform expression to received stream.
- */
-abstract class IntermediateOperator<in T, out U>(private val upstream: ReceiveChannel<T>): Operator{
-    abstract val downstream: ReceiveChannel<U>
-}
+//this and intermediate should become an interface that both inherit a common operator
+abstract class TerminalOperator<T> {
+    abstract val stateful: Boolean
 
-//
-//private fun <T, U> combineFlowWithOperator(upstream: ReceiveChannel<T>, oper: StatelessOperator<T, U>): Flow<U>{
-//    val newChannel =
-//    return Flow(newChannel)
-//}
+    abstract val upstream: ReceiveChannel<T>
 
-open class TerminalOperator<in T> : Operator {
-    override val isStateful: Boolean = true
-}
-
-open class StatelessOperator<in T, out U>(upstream: ReceiveChannel<T>, transform: (T) -> U): IntermediateOperator<T, U>(upstream){
-    override val downstream: ReceiveChannel<U> = produce(block = {
-        while (!upstream.isClosedForReceive) {
-            val jobs = List(5) {
-                launch {
-                    send(transform(upstream.receive()))
-                }
+    fun run() {
+        runBlocking {
+            for (item in upstream) {
+//                operate(item)
             }
-            jobs.forEach { it.join() }
-
         }
-        println("Upstream channel closed.")
-    })
-
-    override val isStateful: Boolean = false
+    }
+//    abstract suspend fun operate(item: T)
+//    abstract val operation: Operation<T>
 }
 
-//open class StatefulOperator<in T, out U>(transform: (T) -> U): IntermediateOperator<T, U>(transform){
-//    override val isStateful: Boolean = true
+abstract class IntermediateOperator<T, U> {
+    abstract val stateful: Boolean
+    abstract val upstream: ReceiveChannel<T>
+    abstract val downstream: SendChannel<U>
+
+    fun run() {
+        runBlocking {
+            for (item in upstream) {
+                operation.operate(item, downstream)
+            }
+            downstream.close()
+        }
+    }
+
+    //    abstract suspend fun operate(item: T, downstream: suspend (U) -> Any)
+    abstract val operation: Operation<T, U>
+}
+
+class StatelessOperator<T, U> (
+        override val upstream: ReceiveChannel<T>,
+        override val downstream: SendChannel<U>,
+        override val operation: Operation<T, U>
+): IntermediateOperator<T, U>(){
+    override val stateful: Boolean = false
+}
+
+//class MapOperator<T, U>(
+//        val mapper: (T) -> U,
+//        upstream: ReceiveChannel<T>,
+//        downstream: SendChannel<U>
+//) : StatelessOperator<T, U>(upstream, downstream) {
+//    override suspend fun operate(item: T, downstream: suspend (U) -> Any) {
+//        TODO("not implemented") //To change body of created functions use File | Settings | File Templates.
+//    }
 //}
 
+class MapOperation<T, U>(private val mapper: (T) -> U) : Operation<T, U> {
+    override suspend fun operate(item: T, downstream: SendChannel<U>) {
+        downstream.send(mapper(item))
+    }
 
-//class PassthroughOperator<T> : StatelessOperator<T, T>({ it })
+}
+
+interface Operation<T, U> {
+    suspend fun operate(item: T, downstream: SendChannel<U>)
+}

@@ -3,7 +3,7 @@
 ///**
 // * SyncFlow implementation must have the same "in" and "out" types
 // */
-//class PassthroughOperator<T> : Operator<T, T> {
+//class PassthroughOperator<T> : TerminalOperator<T, T> {
 //    private lateinit var callback: (T) -> Unit
 //    override fun apply(item: T) {
 //        callback(item)
