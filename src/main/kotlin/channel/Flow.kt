@@ -1,4 +1,4 @@
-package flow
+package channel
 
 import kotlinx.coroutines.experimental.channels.*
 import kotlinx.coroutines.experimental.runBlocking

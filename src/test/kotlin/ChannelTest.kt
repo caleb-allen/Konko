@@ -1,10 +1,10 @@
-import flow.Flow
+import channel.Flow
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.junit.Test
 
-class SyncTest {
+class ChannelTest {
     @Test fun testFlowWithChannels() = runBlocking{
 //        val a = listOf(0, 1, 2, 3, 4)
         val a = produce {
