@@ -1,5 +1,6 @@
+import channel.FilterOperator
 import channel.Flow
-import channel.MapOperation
+import channel.MapOperator
 import channel.StatelessOperator
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.produce
@@ -16,14 +17,26 @@ class ChannelTest {
             }
         }
 
-        val downstream = Channel<String>(Channel.UNLIMITED)
+        val downstream = Channel<Int>(Channel.UNLIMITED)
 
-        val mapOperation = MapOperation<Int, String>({ "Hello $it" })
-        val mapOperator = StatelessOperator(upstream, downstream, mapOperation)
-        mapOperator.run()
-//        mapOperator.
-        for (item in downstream) {
+        val filter = FilterOperator<Int>({ it % 2 == 0}, upstream, downstream)
+        filter.run()
+
+//        for (item in downstream) {
+//            println("Downstream: $item")
+//        }
+        println("running mapper...")
+        val evenDownerstream = Channel<String>(Channel.UNLIMITED)
+
+        val map = MapOperator({"Hello $it"}, downstream, evenDownerstream)
+        map.run()
+
+        for (item in evenDownerstream) {
             println(item)
         }
+    }
+
+    @Test fun flowTest(){
+
     }
 }
