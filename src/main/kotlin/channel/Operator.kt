@@ -24,43 +24,60 @@ internal interface Operator<T> {
     suspend fun operate(item: T)
 }
 
-internal interface IntermediateOperator<T, U> : Operator<T> {
-    val downstream: SendChannel<U>
+abstract class IntermediateOperator<T, U>{
+    protected abstract val stateful: Boolean
 
-    override fun done() {
-        println("Closing downstream")
+    private lateinit var downstream: SendChannel<U>
+    protected abstract val upstream: ReceiveChannel<T>
+
+//    internal fun setDownstream(downstream: SendChannel<U>){
+//        this.downstream = downstream
+//    }
+
+    fun run(down: SendChannel<U>){
+        this.downstream = down
+        runBlocking {
+            for (item in upstream) {
+                operate(item)
+            }
+        }
         downstream.close()
-        super.done()
     }
+
+    protected suspend fun send(item: U) {
+        downstream.send(item)
+    }
+
+    abstract suspend fun operate(item: T)
 }
 
-abstract class StatelessOperator<T, U>(
-        override val upstream: ReceiveChannel<T>,
-        override val downstream: SendChannel<U>) : IntermediateOperator<T, U> {
+abstract class StatelessOperator<T, U> : IntermediateOperator<T, U>() {
     override val stateful: Boolean = false
 }
 
-class MapOperator<T, U>(
-        private val mapper: (T) -> U,
-        upstream: ReceiveChannel<T>,
-        downstream: SendChannel<U>
-) : StatelessOperator<T, U>(upstream, downstream) {
+class MapOperator<T, U>(override val upstream: ReceiveChannel<T>, private val mapper: (T) -> U) : StatelessOperator<T, U>() {
     override suspend fun operate(item: T) {
-        downstream.send(mapper(item))
+        send(mapper(item))
     }
 }
 
-class FilterOperator<T>(
-        private val filter: suspend (T) -> Boolean,
-        upstream: ReceiveChannel<T>,
-        downstream: SendChannel<T>
-) : StatelessOperator<T, T>(upstream, downstream) {
+class PassthroughOperator<T>(override val upstream: ReceiveChannel<T>): StatelessOperator<T, T>(){
     override suspend fun operate(item: T) {
-        if (filter(item)) {
-            downstream.send(item)
-        }
+        send(item)
     }
+
 }
+
+
+//class FilterOperator<T>(
+//        private val filter: (T) -> Boolean) : StatelessOperator<T, T>() {
+//    override suspend fun operate(item: T, downstream: SendChannel<T>) {
+//        if (filter(item)) {
+//            downstream.send(item)
+//        }
+//    }
+//}
+
 
 /*class MapOperation<T, U>(private val mapper: (T) -> U) : IntermediateOperation<T, U> {
     override suspend fun operate(item: T, downstream: SendChannel<U>) {

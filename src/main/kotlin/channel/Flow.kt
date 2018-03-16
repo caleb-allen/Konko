@@ -14,38 +14,34 @@ import kotlinx.coroutines.experimental.runBlocking
  *
  * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
  */
-class Flow/*<T, U>(operator: IntermediateOperator<T, U>): IntermediateOperator<T, U> by operator*/{
+class Flow<out T>(operator: IntermediateOperator<*, T>) {
+    private val outChannel: Channel<T> = Channel(Channel.UNLIMITED)
 
-
-
-    /*fun <U> map(mapper: (T) -> U): Flow<U> {
-        return Flow(StatelessOperator(this, mapper).downstream)
+    init {
+        operator.run(outChannel)
     }
 
-    fun forEach(block: (T) -> Unit) {
-        runBlocking {
-            while (!isClosedForReceive) {
-                try {
-                    block(receive())
-                } catch (e: ClosedReceiveChannelException) {
-//                    e.printStackTrace()
-                    println("Tried to receive objects; channel was closed")
-                }
-            }
-            println("Channel closed.")
-        }
-    }*/
-    companion object {
-        fun <T, U> map(mapper: (T) -> U) {
+//    constructor(channel: Channel<U>){
+//        outChannel = channel
+//    }
 
-        }
-
-//        fun <T> from(iterable: Iterable<T>): Flow<T>{
-//            return Flow(iterable.asReceiveChannel())
-//        }
 //
-//        fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
-//            return Flow(receiveChannel)
-//        }
+    fun forEach(action: (T) -> Unit) = runBlocking {
+        for (item in outChannel) {
+            action(item)
+        }
     }
+
+    fun <U> map(mapper: (T) -> U): Flow<U> {
+        val mapOperator = MapOperator(outChannel, mapper)
+        return Flow(mapOperator)
+    }
+
+    companion object {
+
+        fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
+            return Flow(PassthroughOperator(receiveChannel))
+        }
+    }
+
 }
