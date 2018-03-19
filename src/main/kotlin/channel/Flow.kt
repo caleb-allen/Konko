@@ -17,52 +17,41 @@ import java.io.File
  *
  * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
  */
-class Flow<T, U>(private val inChannel : ReceiveChannel<T>, operator: IntermediateOperator<T, U>) {
-    private val outChannel: Channel<U> = Channel(500)
+abstract class Flow<out T> {
+    protected abstract val stateful: Boolean
+    protected abstract val channel : ReceiveChannel<T>
 
-    init {
-        operator.downstream = outChannel
-        launch {
-            val jobs = mutableListOf<Job>()
-            for (item in inChannel) {
-                jobs.add(launch {
-                    operator.operate(item)
-                })
-            }
-            jobs.forEach { it.join() }
-            operator.downstream.close()
-        }
-    }
-
-    fun forEach(block: (U) -> Unit): TerminalFlow<U> {
-        return TerminalFlow(outChannel, ForEachOperator(block))
-    }
-
-    fun <V> map(mapper: (U) -> V): Flow<U, V> {
-        val mapOperator = MapOperator(mapper)
-        return Flow(outChannel, mapOperator)
-    }
-
-    fun filter(filter: (U) -> Boolean) : Flow<U, U>{
-        return Flow(outChannel, FilterOperator(filter))
-    }
     companion object {
-        fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T, T>{
-            return Flow(receiveChannel, PassthroughOperator())
+        fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
+            return BaseFlow(receiveChannel)
         }
 
         fun <T> from(file: File) {
 
         }
     }
-}
 
-class TerminalFlow<T>(private val inChannel: ReceiveChannel<T>, operator: Operator<T>) {
-    init {
+    fun <V> map(mapper: (T) -> V): Flow<V> {
+        return buildFlow(MapOperation(mapper))
+    }
+
+    fun filter(filter: (T) -> Boolean): Flow<T> {
+        return buildFlow(FilterOperation(filter))
+    }
+
+    private fun <U> buildFlow(operation: Operation<T, U>): Flow<U>{
+        return BaseOperator(channel, operation)
+    }
+
+    fun forEach(block: (T) -> Unit) {
         runBlocking {
-            for (item in inChannel) {
-                operator.operate(item)
+            for (item in channel) {
+                block(item)
             }
         }
     }
+}
+
+class BaseFlow<out T>(override val channel: ReceiveChannel<T>): Flow<T>(){
+    override val stateful: Boolean = true
 }

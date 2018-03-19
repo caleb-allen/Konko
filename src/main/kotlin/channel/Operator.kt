@@ -8,59 +8,64 @@ import kotlinx.coroutines.experimental.runBlocking
 /**
  * terminal operator
  */
-abstract class Operator<T> {
+/*abstract class Operator<T> {
     protected abstract val stateful: Boolean
-//    internal lateinit var upstream: ReceiveChannel<T>
+    internal lateinit var upstream: ReceiveChannel<T>
 
+    fun run() {
+        runBlocking {
+            for (item in upstream) {
+                operate(item)
+            }
+        }
+    }
 
     protected open fun done() {}
     internal abstract suspend fun operate(item: T)
-}
+}*/
 
-abstract class IntermediateOperator<T, U>: Operator<T>(){
-    internal lateinit var downstream: SendChannel<U>
-
-    override fun done() {
-        super.done()
-        downstream.close()
-    }
-
-    protected suspend fun send(item: U) {
-        downstream.send(item)
-    }
-}
-
-abstract class StatelessOperator<T, U> : IntermediateOperator<T, U>() {
+abstract class StatelessOperator<T, U> : Flow<U>() {
+    abstract val upstream: ReceiveChannel<T>
     override val stateful: Boolean = false
+    override val channel: Channel<U> = Channel(Channel.UNLIMITED)
+
+    abstract val operation: Operation<T, U>
+
+    fun run() {
+        runBlocking {
+            operation.downstream = channel
+            for (item in upstream) {
+                operation.apply(item)
+            }
+            channel.close()
+        }
+    }
 }
 
-class MapOperator<T, U>(private val mapper: (T) -> U) : StatelessOperator<T, U>() {
-    override suspend fun operate(item: T) {
+class BaseOperator<T, U>(override val upstream: ReceiveChannel<T>, override val operation: Operation<T, U>): StatelessOperator<T, U>(){
+    init {
+        run()
+    }
+}
+
+class MapOperation<in T, U>(private val mapper: (T) -> U) : Operation<T, U>() {
+    override suspend fun apply(item: T) {
         send(mapper(item))
     }
 }
 
-//class FlatMapOperator<T, U>(private val mapper: (T) -> Flow<U>)
-
-class PassthroughOperator<T>: StatelessOperator<T, T>(){
-    override suspend fun operate(item: T) {
-        send(item)
-    }
-}
-
-class FilterOperator<T>(private val filter: (T) -> Boolean) : StatelessOperator<T, T>() {
-    override suspend fun operate(item: T) {
+class FilterOperation<T>(private val filter: (T) -> Boolean) : Operation<T, T>() {
+    override suspend fun apply(item: T) {
         if (filter(item)) {
             send(item)
         }
     }
 }
 
-///////////////////////////Terminal Operators///////////////////////////////
-
-class ForEachOperator<T>(private val block: (T) -> Unit) : Operator<T>() {
-    override val stateful: Boolean = true
-    override suspend fun operate(item: T) {
-        block(item)
+abstract class Operation<in T, U>{
+    abstract suspend fun apply(item: T)
+    internal lateinit var downstream: SendChannel<U>
+    suspend fun send(item: U) {
+        downstream.send(item)
     }
 }
