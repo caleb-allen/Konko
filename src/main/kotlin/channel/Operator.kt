@@ -30,11 +30,7 @@ abstract class IntermediateOperator<T, U>{
     private lateinit var downstream: SendChannel<U>
     protected abstract val upstream: ReceiveChannel<T>
 
-//    internal fun setDownstream(downstream: SendChannel<U>){
-//        this.downstream = downstream
-//    }
-
-    fun run(down: SendChannel<U>){
+    internal fun run(down: SendChannel<U>){
         this.downstream = down
         runBlocking {
             for (item in upstream) {

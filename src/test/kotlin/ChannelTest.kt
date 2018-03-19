@@ -13,7 +13,7 @@ class ChannelTest {
         }
 
         Flow.from(upstream)
-                .map { "$it says hello!" }
+                .map { println("received $it"); "$it says hello!" }
                 .forEach { println(it) }
     }
 
