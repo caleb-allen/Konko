@@ -1,8 +1,6 @@
 package channel
 
-import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
 import java.io.File
 
@@ -17,17 +15,13 @@ import java.io.File
  *
  * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
  */
-abstract class Flow<out T> {
-    protected abstract val stateful: Boolean
-    protected abstract val channel : ReceiveChannel<T>
+interface Flow<out T> {
+    val stateful: Boolean
+    val downstream : ReceiveChannel<T>
 
     companion object {
         fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
             return BaseFlow(receiveChannel)
-        }
-
-        fun <T> from(file: File) {
-
         }
     }
 
@@ -40,18 +34,18 @@ abstract class Flow<out T> {
     }
 
     private fun <U> buildFlow(operation: Operation<T, U>): Flow<U>{
-        return BaseOperator(channel, operation)
+        return BaseOperator(downstream, operation)
     }
 
     fun forEach(block: (T) -> Unit) {
         runBlocking {
-            for (item in channel) {
+            for (item in downstream) {
                 block(item)
             }
         }
     }
 }
 
-class BaseFlow<out T>(override val channel: ReceiveChannel<T>): Flow<T>(){
+class BaseFlow<out T>(override val downstream: ReceiveChannel<T>): Flow<T>{
     override val stateful: Boolean = true
 }

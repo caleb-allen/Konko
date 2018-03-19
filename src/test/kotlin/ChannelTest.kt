@@ -8,15 +8,16 @@ import kotlin.system.measureTimeMillis
 class ChannelTest {
     @Test fun testFlowWithChannels() {
         val upstream = produce(capacity = Channel.UNLIMITED) {
-            for (i in 0..10) {
+            for (i in 0..20) {
                 send(i)
             }
         }
 
         val time = measureTimeMillis {
             Flow.from(upstream)
-                    .filter { it % 2 == 0 }
-                    .map { "$it says hello" }
+                    .filter { println("#1 filtering $it");it % 2 == 0 }
+                    .filter { println("#2 filtering $it"); it % 3 == 0 }
+                    .map { println("mapping $it");"$it says hello" }
                     .forEach { println(it) }
         }
 

@@ -9,11 +9,11 @@ class Flow<T, U> private constructor(upstream: ReceiveChannel<T>): SendChannel<U
 
 
     companion object {
-        // maybe we use the channel to send messages back to a "mediator" that will pass it to the next stage
+        // maybe we use the downstream to send messages back to a "mediator" that will pass it to the next stage
         fun <T> filterActor(downstream: SendChannel<T>, predicate: (T) -> Boolean): SendChannel<T>{
             val a = actor<T> {
                 for (item in channel) {
-                    // need to pass this channel reference down the channel reference down the chain
+                    // need to pass this downstream reference down the downstream reference down the chain
                     if (predicate(item)) {
                         downstream.send(item)
                     }
