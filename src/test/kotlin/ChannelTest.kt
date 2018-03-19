@@ -1,6 +1,7 @@
 import channel.*
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.produce
+import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 import org.junit.Test
 import kotlin.system.measureTimeMillis
@@ -8,17 +9,17 @@ import kotlin.system.measureTimeMillis
 class ChannelTest {
     @Test fun testFlowWithChannels() {
         val upstream = produce(capacity = Channel.UNLIMITED) {
-            for (i in 0..20) {
+            for (i in 0..1_000_000) {
                 send(i)
             }
         }
 
         val time = measureTimeMillis {
             Flow.from(upstream)
-                    .filter { println("#1 filtering $it");it % 2 == 0 }
-                    .filter { println("#2 filtering $it"); it % 3 == 0 }
-                    .map { println("mapping $it");"$it says hello" }
-                    .forEach { println(it) }
+                    .filter {/* println("#1 filtering $it");*/it % 2 == 0 }
+                    .filter { /*println("#2 filtering $it"); */it % 3 == 0 }
+                    .map { /*println("mapping $it");*/"$it says hello" }
+                    .forEach {  }
         }
 
         println("Total time: $time ms")

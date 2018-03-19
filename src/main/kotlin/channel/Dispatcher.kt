@@ -32,6 +32,9 @@ class SynchronousDispatcher<T, U>(
 class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
                                  override val operation: Operation<T, U>,
                                  override val downstream: SendChannel<U>): Dispatcher<T, U> {
+
+    val concurrentMax = 100
+
     override fun run() {
         println("Starting dispatcher")
         operation.send = {downstream.send(it)}
@@ -42,7 +45,6 @@ class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
                     operation.apply(item)
                 })
             }
-
             launch {
                 jobs.forEach { it.join() }
                 downstream.close()

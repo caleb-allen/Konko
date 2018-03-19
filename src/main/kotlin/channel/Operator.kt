@@ -3,6 +3,7 @@ package channel
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.SendChannel
+import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.runBlocking
 
 abstract class StatelessOperator<T, U> : Flow<U> {
@@ -12,7 +13,7 @@ abstract class StatelessOperator<T, U> : Flow<U> {
 }
 
 class BaseOperator<T, U>(upstream: ReceiveChannel<T>, operation: Operation<T, U>): StatelessOperator<T, U>(){
-    override val downstream: Channel<U> = Channel(3)
+    override val downstream: Channel<U> = Channel(Channel.UNLIMITED)
     override val dispatcher = ConcurrentDispatcher(upstream, operation, downstream)
     init {
         dispatcher.run()
