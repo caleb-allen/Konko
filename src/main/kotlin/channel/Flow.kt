@@ -6,7 +6,7 @@ import kotlinx.coroutines.experimental.runBlocking
 import java.io.File
 import java.io.FileReader
 import java.io.BufferedReader
-
+import kotlin.system.measureTimeMillis
 
 
 /**
@@ -94,8 +94,11 @@ interface Flow<out T> {
 
     fun count(): Int{
         var count = 0
-        runBlocking {
-            count = downstream.count()
+        val time = measureTimeMillis {
+            runBlocking {
+
+                count = downstream.count()
+            }
         }
         return count
     }

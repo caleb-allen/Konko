@@ -54,31 +54,31 @@ class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
                 val jobs = List(concurrentMax){
                     launch (coroutineContext){
                         for (item in upstream) {
-                            val t: Long = measureNanoTime {
+                            val t: Long = measureTimeMillis {
                                 operation.apply(item)
                             }
-                            operationTimes.send(it.toInt())
+                            operationTimes.send(t.toInt())
                         }
                         operationTimes.close()
-                        println("Job is done")
+//                        println("Job $it is done")
                     }
                 }
-                println("It took ${jobsLaunched - startJob}ms to start the jobs")
+//                println("It took ${jobsLaunched - startJob}ms to start the jobs")
                 jobs.forEach {
                     it.join()
-                    it.getCancellationException()
+//                    it.getCancellationException()
                 }
-                println("Job size: ${jobs.size}")
+//                println("Job size: ${jobs.size}")
             }
 
-            println("Jobs are done")
-            println("Jobs took $time")
+//            println("Jobs are done")
+//            println("Jobs took $time")
 //            println(operationTimes)
-            val times = operationTimes.toList()
-            println(times)
-            val avg = times.sum() / times.size
-            println("Total: ${times.sum()}")
-            println("Operations took ${avg / 1000} on average")
+//            val times = operationTimes.toList()
+//            println(times)
+//            val avg = times.sum() / times.size
+//            println("Total: ${times.sum()}")
+//            println("Operations took ${avg} on average")
             downstream.close()
 
         }

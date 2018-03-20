@@ -38,18 +38,21 @@ class ChannelTest {
     @Test fun fileTest() {
         val time = measureTimeMillis {
             val f = File("G:\\Downloads\\big.txt")
+
+            //TODO implement reduce functions
             val count = Flow.from(f)
 //                    .limit(1000)
 //                    .flatMap { it.split(" ", "\n") }
 //                    .limit(3)
-                    .flatMap { it.toList() }
+                    .flatMap { it.split(" ") }
+                    .filter { it == "the" }
                     .count()
 //                    .map { it + " Hi" }
 //                    .limit(10)
 //                    .forEach { println(it) }
 //                    .consumeEach { println(it) }
 
-            println("Character count: $count")
+            println("Words matching count: $count")
         }
 
         println("Time: ${time}ms")
@@ -58,7 +61,7 @@ class ChannelTest {
 
     @Test fun syncTest(){
         val time = measureTimeMillis {
-            val letterCountMap = mutableMapOf<Char, Int>()
+//            val letterCountMap = mutableMapOf<Char, Int>()
             var count = 0
 
             val f = File("G:\\Downloads\\big.txt")
@@ -67,22 +70,19 @@ class ChannelTest {
             var linesRead = 0
 
             while (s != null /*&& linesRead < 10*/) {
-                val chars = s.toCharArray()
+                val words = s.split(" ")
                 linesRead++
-                count += chars.toList().size
-                chars.forEach {
-                    letterCountMap[it] = letterCountMap.getOrPut(it, {0}) + 1
-                }
+                count += words.filter { it == "the" }.count()
                 s = br.readLine()
             }
             br.close()
+//
+//            println(letterCountMap)
+//            letterCountMap.entries.toList().subList(0, 10).forEach {
+//                println(it)
+//            }
 
-            println(letterCountMap)
-            letterCountMap.entries.toList().subList(0, 10).forEach {
-                println(it)
-            }
-
-            println("Character count: $count")
+            println("Words matching count: $count")
         }
 
         println("Time: ${time}ms")
