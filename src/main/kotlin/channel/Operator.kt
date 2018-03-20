@@ -2,14 +2,9 @@ package channel
 
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 
-abstract class StatelessOperator<T, U> : Flow<U> {
-    //    override val downstream: Channel<U> = Channel(500)
-    abstract val dispatcher: Dispatcher<T, U>
-}
-
-class BaseOperator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>) : StatelessOperator<T, U>() {
-    //    override val downstreams: List<Channel<U>> = List(4) { Channel<U>() }
-    override val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
+class BaseOperator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>): Flow<U> {
+    private val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
+    override val downstreams: List<ReceiveChannel<U>> = dispatcher.downstreams
 
     companion object {
         private fun <T, U> chooseDispatcher(upstreams: List<ReceiveChannel<T>>,
@@ -21,7 +16,6 @@ class BaseOperator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operatio
                 }
     }
 
-    override val downstreams: List<ReceiveChannel<U>> = dispatcher.downstreams
 
     init {
         dispatcher.run()
@@ -31,7 +25,7 @@ class BaseOperator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operatio
 //TODO terminal operations
 interface Operation<T, U> {
     val stateful: Boolean
-    abstract suspend fun apply(item: T, actions: OperationActions<U>)
+    suspend fun apply(item: T, actions: OperationActions<U>)
 }
 
 class MapOperation<T, U>(private val mapper: (T) -> U) : Operation<T, U> {

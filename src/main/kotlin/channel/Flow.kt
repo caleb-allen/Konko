@@ -1,12 +1,13 @@
 package channel
 
-import kotlinx.coroutines.experimental.channels.*
+import kotlinx.coroutines.experimental.channels.Channel
+import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import kotlinx.coroutines.experimental.channels.asReceiveChannel
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
-import java.io.BufferedReader
-import kotlin.system.measureTimeMillis
 
 
 /**

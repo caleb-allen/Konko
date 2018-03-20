@@ -1,8 +1,8 @@
 package example
 
-import old.Dispatcher
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import old.Dispatcher
 import java.util.*
 
 //TODO maybe use a factory for the consumers so that we can spin them up on demand and allocate sections of the
