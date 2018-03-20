@@ -44,7 +44,8 @@ class ChannelTest {
 //                    .limit(1000)
 //                    .flatMap { it.split(" ", "\n") }
 //                    .limit(3)
-                    .flatMap { it.split(" ") }
+//                    .flatMap { it.split(" ") }
+                    .map { it + "hi" }
                     .filter { it == "the" }
                     .count()
 //                    .map { it + " Hi" }
