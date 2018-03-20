@@ -2,22 +2,132 @@ package channel
 
 import kotlinx.coroutines.experimental.Job
 import kotlinx.coroutines.experimental.channels.*
-import kotlinx.coroutines.experimental.delay
 import kotlinx.coroutines.experimental.launch
-import kotlinx.coroutines.experimental.runBlocking
-import java.util.*
-import kotlin.concurrent.timerTask
-import kotlin.system.measureNanoTime
-import kotlin.system.measureTimeMillis
 
-interface Dispatcher<T, U>{
-    val upstream: ReceiveChannel<T>
+/**
+ * Actions that the operation will take. Dispatcher is to bind these to downstream channels.
+ *
+ * We do this rather than giving operations direct access to downstream because
+ * dispatchers may wish to use strategies which are not 1:1 to how many operation
+ * instances or channels are present
+ */
+interface OperationActions<in T>{
+    suspend fun send(item: T)
+    suspend fun done()
+}
+
+interface Dispatcher<T, U> {
+    val upstreams: List<ReceiveChannel<T>>
     val operation: Operation<T, U>
-    val downstream: SendChannel<U>
+    val downstreams: List<Channel<U>>
     fun run()
 }
 
-class SynchronousDispatcher<T, U>(
+class OneToOneDispatcher<T, U>(
+        override val upstreams: List<ReceiveChannel<T>>,
+        override val operation: Operation<T, U>) : Dispatcher<T, U> {
+    override val downstreams: List<Channel<U>> = List(upstreams.size) {Channel<U>(Channel.UNLIMITED)}
+    override fun run() {
+        println("Dispatching 1:1 from ${upstreams.size} streams")
+        upstreams.forEachIndexed { index, upstream ->
+            launch {
+                val downstream = downstreams[index]
+                val opActions = object : OperationActions<U> {
+                    override suspend fun send(item: U) {
+                        downstream.send(item)
+                    }
+
+                    override suspend fun done() {
+                        downstream.close()
+                    }
+
+                }
+
+                for (item in upstream) {
+                    operation.apply(item, opActions)
+                }
+                downstream.close()
+            }
+        }
+    }
+}
+
+class OneToManyDispatcher<T, U>(
+        override val upstreams: List<ReceiveChannel<T>>,
+        override val operation: Operation<T, U>) : Dispatcher<T, U> {
+    override val downstreams: List<Channel<U>> = List(50) {Channel<U>(Channel.UNLIMITED)}
+    override fun run() {
+        if (upstreams.size != 1) {
+            throw IllegalStateException("Requires 1 upstream channel." +
+                    "Got ${upstreams.size}")
+        }
+        println("Dispatching from 1 to ${downstreams.size}")
+        launch {
+            val upstream = upstreams.first()
+
+            val opActions = object : OperationActions<U> {
+                var downstreamIndex = 0
+                override suspend fun send(item: U) {
+                    downstreams[downstreamIndex].send(item)
+                }
+
+                override suspend fun done() {
+                    downstreams.forEach {
+                        it.close()
+                    }
+                }
+            }
+
+            for (item in upstream) {
+                operation.apply(item, opActions)
+            }
+
+            downstreams.forEach {
+                it.close()
+            }
+        }
+    }
+}
+
+class ManyToOneDispatcher<T, U>(
+        override val upstreams: List<ReceiveChannel<T>>,
+        override val operation: Operation<T, U>) : Dispatcher<T, U> {
+    override val downstreams: List<Channel<U>> = List(1) {Channel<U>(Channel.UNLIMITED)}
+    override fun run() {
+        if (upstreams.size <= 1) {
+            throw IllegalStateException("Requires more than 1 upstream channel." +
+                    "Got ${upstreams.size}")
+        }
+        println("Dispatching from ${downstreams.size} to 1")
+        launch {
+            val opActions = object : OperationActions<U> {
+                override suspend fun send(item: U) {
+                    downstreams.first().send(item)
+                }
+
+                override suspend fun done() {
+                    downstreams.first().close()
+                }
+
+            }
+
+            val jobs = List(upstreams.size) {
+                launch {
+                    val upstream = upstreams[it]
+                    for (item in upstream) {
+                        operation.apply(item, opActions)
+                    }
+                }
+            }
+
+            jobs.forEach { it.join() }
+            downstreams.first().close()
+        }
+    }
+}
+
+
+/*class SynchronousDispatcher<T, U>(
         override val upstream: ReceiveChannel<T>,
         override val operation: Operation<T, U>,
         override val downstream: SendChannel<U>): Dispatcher<T, U>{
@@ -32,8 +142,9 @@ class SynchronousDispatcher<T, U>(
             downstream.close()
         }
     }
-}
+}*/
 
+/*
 class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
                                  override val operation: Operation<T, U>,
                                  override val downstream: SendChannel<U>): Dispatcher<T, U> {
@@ -83,4 +194,4 @@ class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
 
         }
     }
-}
+}*/

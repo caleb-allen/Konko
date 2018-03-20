@@ -1,4 +1,5 @@
 import channel.*
+import io.reactivex.Flowable
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.produce
 import kotlinx.coroutines.experimental.delay
@@ -35,28 +36,61 @@ class ChannelTest {
                 .forEach { println(it) }
     }
 
-    @Test fun fileTest() {
-        val time = measureTimeMillis {
-            val f = File("G:\\Downloads\\big.txt")
+    @Test fun multipleChannelsTest(){
+        val a = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
+        Flow.from(a)
+                .filter { it % 2 == 0 }
+                .map { "$it says hi!" }
+                .forEach { println(it) }
+    }
 
-            //TODO implement reduce functions
-            val count = Flow.from(f)
+    @Test fun fileTest() {
+        runBlocking {
+
+            val time = measureTimeMillis {
+                val f = File("G:\\Downloads\\big.txt")
+
+                //TODO implement reduce functions
+                Flow.from(f)
 //                    .limit(1000)
 //                    .flatMap { it.split(" ", "\n") }
 //                    .limit(3)
-//                    .flatMap { it.split(" ") }
-                    .map { it + "hi" }
-                    .filter { it == "the" }
-                    .count()
+                        .flatMap { it.split(" ") }
+//                    .map { it + "hi" }
+                        .filter { it.contains("the")}
+                        .consumeEach {  }
 //                    .map { it + " Hi" }
 //                    .limit(10)
 //                    .forEach { println(it) }
 //                    .consumeEach { println(it) }
 
-            println("Words matching count: $count")
+//                println("Words matching count: $count")
+            }
+            println("Time: ${time}ms")
         }
+    }
 
+    @Test fun reactiveTest(){
+        val time = measureTimeMillis {
+            val f = File("G:\\Downloads\\big.txt")
+            val br = BufferedReader(FileReader(f))
+            val count = Flowable.generate<String> {
+
+                val s : String? = br.readLine()
+                if (s != null /*&& linesRead < 10*/) {
+                    it.onNext(s)
+                }else{
+                    it.onComplete()
+                }
+            }
+                    .flatMap { Flowable.fromIterable(it.split(" ")) }
+                    .filter { it == "the" }
+                    .count()
+            println("Count: ${count.blockingGet()}")
+
+        }
         println("Time: ${time}ms")
+
     }
 
 

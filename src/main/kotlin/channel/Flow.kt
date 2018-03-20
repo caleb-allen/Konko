@@ -20,8 +20,8 @@ import kotlin.system.measureTimeMillis
  *
  * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
  */
-interface Flow<out T> {
-    val downstream : ReceiveChannel<T>
+interface Flow<T> {
+    val downstreams : List<ReceiveChannel<T>>
 
     companion object {
         fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
@@ -43,7 +43,7 @@ interface Flow<out T> {
 
         fun from(file: File) : Flow<String> {
             val br = BufferedReader(FileReader(file))
-            val fileChannel = Channel<String>(100)
+            val fileChannel = Channel<String>(Channel.UNLIMITED)
             launch {
                 var s : String? = br.readLine()
                 while (s != null) {
@@ -58,7 +58,7 @@ interface Flow<out T> {
         }
     }
 
-    fun <V> map(mapper: (T) -> V): Flow<V> {
+    fun <U> map(mapper: (T) -> U): Flow<U> {
         return buildFlow(MapOperation(mapper))
     }
 
@@ -75,33 +75,42 @@ interface Flow<out T> {
     }
 
     private fun <U> buildFlow(operation: Operation<T, U>): Flow<U>{
-        return BaseOperator(downstream, operation)
+        return BaseOperator(downstreams, operation)
     }
 
     suspend fun consumeEach(block: suspend (T) -> Unit){
-        for (item in downstream) {
-            block(item)
+        for (stream in downstreams) {
+            launch {
+                for (item in stream) {
+                    block(item)
+                }
+            }
         }
     }
 
     fun forEach(block: (T) -> Unit) {
         runBlocking {
-            for (item in downstream) {
-                block(item)
+            for (stream in downstreams) {
+                for (item in stream) {
+                    block(item)
+                }
             }
         }
     }
 
     fun count(): Int{
         var count = 0
-        val time = measureTimeMillis {
-            runBlocking {
-
-                count = downstream.count()
+        runBlocking {
+            for (stream in downstreams) {
+                for (item in stream) {
+                    count++
+                }
             }
         }
         return count
     }
 }
 
-class BaseFlow<out T>(override val downstream: ReceiveChannel<T>): Flow<T>
+class BaseFlow<T>(downstream: ReceiveChannel<T>): Flow<T> {
+    override val downstreams = listOf(downstream)
+}
