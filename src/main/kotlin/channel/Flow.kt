@@ -72,8 +72,8 @@ abstract class Flow<T> {
 
     //---------------------Terminal Operators-----------------------
 
-    fun reduce(block: (T, T) -> T){
-        ReduceOperator(downstreams, block)
+    fun reduce(block: (T, T) -> T): T{
+        return ReduceOperator(downstreams, block).run()
     }
 
     suspend fun consumeEach(block: suspend (T) -> Unit){
