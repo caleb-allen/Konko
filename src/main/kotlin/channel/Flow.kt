@@ -5,24 +5,14 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.asReceiveChannel
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import util.log
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
 
 
-/**
- * TODO maybe combine operators and flow? see [java.util.stream.ReferencePipeline]
- * also see [java.util.stream.ReferencePipeline.StatelessOp]
- *
- * the [Flow] should have one generic type--the output, but perhaps the ops should subclass Flow,
- *
- * and then they have an <In> and <Out> types or something
- *
- *
- * TODO maybe set Flow as an interface instead, and TerminalOperator is where all the meat of it happens
- */
-interface Flow<T> {
-    val downstreams : List<ReceiveChannel<T>>
+abstract class Flow<T> {
+    protected abstract val downstreams : List<ReceiveChannel<T>>
 
     companion object {
         fun <T> from(receiveChannel: ReceiveChannel<T>): Flow<T>{
@@ -51,7 +41,7 @@ interface Flow<T> {
                     fileChannel.send(s)
                     s = br.readLine()
                 }
-                println("Done reading file")
+                log("Done reading file")
                 br.close()
                 fileChannel.close()
             }
@@ -77,6 +67,13 @@ interface Flow<T> {
 
     private fun <U> buildFlow(operation: Operation<T, U>): Flow<U>{
         return Operator(downstreams, operation)
+    }
+
+
+    //---------------------Terminal Operators-----------------------
+
+    fun reduce(block: (T, T) -> T){
+        ReduceOperator(downstreams, block)
     }
 
     suspend fun consumeEach(block: suspend (T) -> Unit){
@@ -112,6 +109,6 @@ interface Flow<T> {
     }
 }
 
-class BaseFlow<T>(downstream: ReceiveChannel<T>): Flow<T> {
+class BaseFlow<T>(downstream: ReceiveChannel<T>): Flow<T>() {
     override val downstreams = listOf(downstream)
 }

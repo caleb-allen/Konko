@@ -44,6 +44,12 @@ class ChannelTest {
                 .forEach { println(it) }
     }
 
+    @Test fun terminalOpTest(){
+        val a = listOf(0, 1, 2, 3, 4)
+        Flow.from(a)
+                .reduce {item1, item2 -> item1 + item2}
+    }
+
     @Test fun fileTest() {
         runBlocking {
 

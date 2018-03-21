@@ -2,7 +2,7 @@ package channel
 
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 
-class Operator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>): Flow<U> {
+class Operator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>): Flow<U>() {
     private val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
     override val downstreams: List<ReceiveChannel<U>> = dispatcher.downstreams
 
