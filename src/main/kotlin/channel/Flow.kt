@@ -76,7 +76,7 @@ interface Flow<T> {
     }
 
     private fun <U> buildFlow(operation: Operation<T, U>): Flow<U>{
-        return BaseOperator(downstreams, operation)
+        return Operator(downstreams, operation)
     }
 
     suspend fun consumeEach(block: suspend (T) -> Unit){

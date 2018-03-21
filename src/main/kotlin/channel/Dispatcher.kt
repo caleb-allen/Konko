@@ -98,7 +98,7 @@ class ManyToOneDispatcher<T, U>(
             throw IllegalStateException("Requires more than 1 upstream channel." +
                     "Got ${upstreams.size}")
         }
-        println("Dispatching from ${downstreams.size} to 1")
+        println("Dispatching from ${upstreams.size} to 1")
         launch {
             val opActions = object : OperationActions<U> {
                 override suspend fun send(item: U) {

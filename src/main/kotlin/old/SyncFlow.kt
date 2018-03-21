@@ -75,7 +75,7 @@
 //    }
 //
 //    fun <V> map(transform: (U) -> V): SyncFlow<U, V> {
-//        return SyncFlow(this, BaseOperator(transform))
+//        return SyncFlow(this, Operator(transform))
 //    }
 //
 //    companion object {
