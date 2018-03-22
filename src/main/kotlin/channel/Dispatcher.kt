@@ -3,6 +3,7 @@ package channel
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.launch
+import util.log
 
 /**
  * Actions that the operation will take. Dispatcher is to bind these to downstream channels.
@@ -28,7 +29,7 @@ class OneToOneDispatcher<T, U>(
         override val operation: Operation<T, U>) : Dispatcher<T, U> {
     override val downstreams: List<Channel<U>> = List(upstreams.size) {Channel<U>(Channel.UNLIMITED)}
     override fun run() {
-        println("Dispatching 1:1 from ${upstreams.size} streams")
+        log("Dispatching 1:1 from ${upstreams.size} streams")
         upstreams.forEachIndexed { index, upstream ->
             launch {
                 val downstream = downstreams[index]
@@ -55,13 +56,13 @@ class OneToOneDispatcher<T, U>(
 class OneToManyDispatcher<T, U>(
         override val upstreams: List<ReceiveChannel<T>>,
         override val operation: Operation<T, U>) : Dispatcher<T, U> {
-    override val downstreams: List<Channel<U>> = List(50) {Channel<U>(Channel.UNLIMITED)}
+    override val downstreams: List<Channel<U>> = List(8) {Channel<U>(Channel.UNLIMITED)}
     override fun run() {
         if (upstreams.size != 1) {
             throw IllegalStateException("Requires 1 upstream channel." +
                     "Got ${upstreams.size}")
         }
-        println("Dispatching from 1 to ${downstreams.size}")
+        log("Dispatching from 1 to ${downstreams.size}")
         launch {
             val upstream = upstreams.first()
 
@@ -98,7 +99,7 @@ class ManyToOneDispatcher<T, U>(
             throw IllegalStateException("Requires more than 1 upstream channel." +
                     "Got ${upstreams.size}")
         }
-        println("Dispatching from ${upstreams.size} to 1")
+        log("Dispatching from ${upstreams.size} to 1")
         launch {
             val opActions = object : OperationActions<U> {
                 override suspend fun send(item: U) {
@@ -152,7 +153,7 @@ class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
     private val concurrentMax = 10
 
     override fun run() {
-        println("Starting dispatcher")
+        log("Starting dispatcher")
         operation.send = {downstream.send(it)}
         operation.done = {downstream.close()}
 
@@ -171,25 +172,25 @@ class ConcurrentDispatcher<T, U>(override val upstream: ReceiveChannel<T>,
                             operationTimes.send(t.toInt())
                         }
                         operationTimes.close()
-//                        println("Job $it is done")
+//                        log("Job $it is done")
                     }
                 }
-//                println("It took ${jobsLaunched - startJob}ms to start the jobs")
+//                log("It took ${jobsLaunched - startJob}ms to start the jobs")
                 jobs.forEach {
                     it.join()
 //                    it.getCancellationException()
                 }
-//                println("Job size: ${jobs.size}")
+//                log("Job size: ${jobs.size}")
             }
 
-//            println("Jobs are done")
-//            println("Jobs took $time")
-//            println(operationTimes)
+//            log("Jobs are done")
+//            log("Jobs took $time")
+//            log(operationTimes)
 //            val times = operationTimes.toList()
-//            println(times)
+//            log(times)
 //            val avg = times.sum() / times.size
-//            println("Total: ${times.sum()}")
-//            println("Operations took ${avg} on average")
+//            log("Total: ${times.sum()}")
+//            log("Operations took ${avg} on average")
             downstream.close()
 
         }

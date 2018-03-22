@@ -62,13 +62,31 @@ class ChannelTest {
         }
     }
 
+    @Test fun continuousCollectTest(){
+        while (true) {
+            collectTest()
+        }
+    }
+
+    @Test fun continuousReactiveCollectTest(){
+        while (true) {
+            reactiveCollectTest()
+        }
+    }
+
     @Test fun collectTest() {
         val time = measureTimeMillis {
             val f = File("G:\\Downloads\\big.txt")
+            var processStartTime = 0L
             val wordsCount = Flow.from(f)
-                    .flatMap { it.split(" ") }
-                    .collect(
-                            { mutableMapOf<String, Int>() },
+                    .partition()
+                    .flatMap {
+                        if (processStartTime == 0L) {
+                            processStartTime = System.currentTimeMillis()
+                        }
+                        it.split(" ")
+                    }
+                    .collect({ mutableMapOf<String, Int>() },
                             { map, item ->
                                 val existing = map.getOrDefault(item, 0)
                                 map[item] = existing + 1
@@ -78,35 +96,52 @@ class ChannelTest {
                             }
                     )
 
+            println("It took ${System.currentTimeMillis() - processStartTime}ms to process")
             println("Got word counts!")
             println("Total words: ${wordsCount.size}")
 
-            println("Grabbing random 10")
+            /*println("Grabbing random 10")
             val entriesList = wordsCount.entries.toList().subList(0, 10)
             for (entry in entriesList) {
                 println(entry)
-            }
+            }*/
         }
-//        println("Time: ${time}ms")
+        println("Time: ${time}ms")
     }
 
-    @Test fun reactiveTest(){
+    @Test fun reactiveCollectTest(){
         val time = measureTimeMillis {
             val f = File("G:\\Downloads\\big.txt")
             val br = BufferedReader(FileReader(f))
-            val count = Flowable.generate<String> {
+            var processStartTime = 0L
+            val wordsCountSingle = Flowable.generate<String> {
 
-                val s : String? = br.readLine()
+                val s: String? = br.readLine()
                 if (s != null /*&& linesRead < 10*/) {
                     it.onNext(s)
-                }else{
+                } else {
                     it.onComplete()
                 }
             }
-                    .flatMap { Flowable.fromIterable(it.split(" ")) }
-                    .filter { it == "the" }
-                    .count()
-            println("Count: ${count.blockingGet()}")
+                    .flatMap {
+                        if (processStartTime == 0L) {
+                            processStartTime = System.currentTimeMillis()
+                        }
+                        Flowable.fromIterable(it.split(" "))
+                    }
+                    .reduceWith(
+                            { mutableMapOf<String, Int>() },
+                            { map, item ->
+                                val existing = map.getOrDefault(item, 0)
+                                map[item] = existing + 1
+                                return@reduceWith map
+                            }
+                    )
+
+            val wordsCount = wordsCountSingle.blockingGet()
+            println("It took ${System.currentTimeMillis() - processStartTime}ms to process")
+            println("Got word counts!")
+            println("Total words: ${wordsCount.size}")
 
         }
         println("Time: ${time}ms")

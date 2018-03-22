@@ -1,6 +1,7 @@
 package channel
 
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
+import util.log
 
 class Operator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>): Flow<U>() {
     private val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
@@ -18,11 +19,11 @@ class Operator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T,
 
 
     init {
+        log("Running dispatcher $dispatcher for $operation")
         dispatcher.run()
     }
 }
 
-//TODO terminal operations
 interface Operation<T, U> {
     val stateful: Boolean
     suspend fun apply(item: T, actions: OperationActions<U>)
@@ -42,6 +43,15 @@ class FilterOperation<T>(private val filter: (T) -> Boolean) : Operation<T, T> {
             actions.send(item)
         }
     }
+}
+
+class PassThroughOperation<T> : Operation<T, T> {
+    override val stateful: Boolean = false
+
+    override suspend fun apply(item: T, actions: OperationActions<T>) {
+        actions.send(item)
+    }
+
 }
 
 class LimitOperation<T>(private val limit: Long) : Operation<T, T> {

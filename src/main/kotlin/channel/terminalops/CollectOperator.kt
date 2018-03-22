@@ -5,6 +5,7 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.consumeEach
 import kotlinx.coroutines.experimental.launch
 import kotlinx.coroutines.experimental.runBlocking
+import util.log
 
 /**
  * Performs a mutable reduction on the Flow.
@@ -20,6 +21,7 @@ class CollectOperator<T, R> (
         private val reducer: (R, R) -> Unit) {
 
     fun run(): R = runBlocking {
+        log("Collecting from ${upstreams.size} channels")
         val downstreamResults = Channel<R>(Channel.UNLIMITED)
         val jobs = List(upstreams.size){index ->
             launch (coroutineContext) {

@@ -11,6 +11,7 @@ import util.log
 import java.io.BufferedReader
 import java.io.File
 import java.io.FileReader
+import kotlin.system.measureTimeMillis
 
 
 abstract class Flow<T> {
@@ -49,6 +50,10 @@ abstract class Flow<T> {
             }
             return BaseFlow(fileChannel)
         }
+    }
+
+    fun partition(): Flow<T>{
+        return buildFlow(PassThroughOperation())
     }
 
     fun <U> map(mapper: (T) -> U): Flow<U> {
