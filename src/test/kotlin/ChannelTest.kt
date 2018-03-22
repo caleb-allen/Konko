@@ -52,28 +52,42 @@ class ChannelTest {
 
     @Test fun fileTest() {
         runBlocking {
-
             val time = measureTimeMillis {
                 val f = File("G:\\Downloads\\big.txt")
-
-                //TODO implement reduce functions
                 Flow.from(f)
-//                    .limit(1000)
-//                    .flatMap { it.split(" ", "\n") }
-//                    .limit(3)
                         .flatMap { it.split(" ") }
-//                    .map { it + "hi" }
-                        .filter { it.contains("the")}
                         .consumeEach {  }
-//                    .map { it + " Hi" }
-//                    .limit(10)
-//                    .forEach { println(it) }
-//                    .consumeEach { println(it) }
-
-//                println("Words matching count: $count")
             }
             println("Time: ${time}ms")
         }
+    }
+
+    @Test fun collectTest() {
+        val time = measureTimeMillis {
+            val f = File("G:\\Downloads\\big.txt")
+            val wordsCount = Flow.from(f)
+                    .flatMap { it.split(" ") }
+                    .collect(
+                            { mutableMapOf<String, Int>() },
+                            { map, item ->
+                                val existing = map.getOrDefault(item, 0)
+                                map[item] = existing + 1
+                            },
+                            { map1, map2 ->
+                                map1.putAll(map2)
+                            }
+                    )
+
+            println("Got word counts!")
+            println("Total words: ${wordsCount.size}")
+
+            println("Grabbing random 10")
+            val entriesList = wordsCount.entries.toList().subList(0, 10)
+            for (entry in entriesList) {
+                println(entry)
+            }
+        }
+//        println("Time: ${time}ms")
     }
 
     @Test fun reactiveTest(){

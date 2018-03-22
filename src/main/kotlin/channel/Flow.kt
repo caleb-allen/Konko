@@ -1,5 +1,7 @@
 package channel
 
+import channel.terminalops.CollectOperator
+import channel.terminalops.ReduceOperator
 import kotlinx.coroutines.experimental.channels.Channel
 import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import kotlinx.coroutines.experimental.channels.asReceiveChannel
@@ -74,6 +76,18 @@ abstract class Flow<T> {
 
     fun reduce(block: (T, T) -> T): T{
         return ReduceOperator(downstreams, block).run()
+    }
+
+    fun <R> collect(
+            seed: () -> R,
+            accumulator: (R, T) -> Unit,
+            reducer: (R, R) -> Unit): R{
+        return CollectOperator(
+                downstreams,
+                seed,
+                accumulator,
+                reducer
+        ).run()
     }
 
     suspend fun consumeEach(block: suspend (T) -> Unit){
