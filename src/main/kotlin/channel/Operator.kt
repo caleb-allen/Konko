@@ -4,7 +4,8 @@ import kotlinx.coroutines.experimental.channels.ReceiveChannel
 import util.log
 
 class Operator<T, U>(upstreams: List<ReceiveChannel<T>>, operation: Operation<T, U>): Flow<U>() {
-    private val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
+//    private val dispatcher: Dispatcher<T, U> = chooseDispatcher(upstreams, operation)
+    private val dispatcher: Dispatcher<T, U> = OneToOneDispatcher(upstreams, operation)
     override val downstreams: List<ReceiveChannel<U>> = dispatcher.downstreams
 
     companion object {
