@@ -10,7 +10,7 @@ import util.log
  *
  * We do this rather than giving operations direct access to downstream because
  * dispatchers may wish to use strategies which are not 1:1 to how many operation
- * instances or channels are present
+ * instances or channels are present (e.g. flatMap)
  */
 interface OperationActions<in T>{
     suspend fun send(item: T)

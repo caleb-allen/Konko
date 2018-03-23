@@ -79,7 +79,6 @@ class ChannelTest {
             val f = File("G:\\Downloads\\big.txt")
             var processStartTime = 0L
             val wordsCount = Flow.from(f)
-                    .partition()
                     .flatMap {
                         if (processStartTime == 0L) {
                             processStartTime = System.currentTimeMillis()
@@ -98,7 +97,7 @@ class ChannelTest {
 
             println("It took ${System.currentTimeMillis() - processStartTime}ms to process")
             println("Got word counts!")
-            println("Total words: ${wordsCount.size}")
+//            println("Total words: ${wordsCount.size}")
 
             /*println("Grabbing random 10")
             val entriesList = wordsCount.entries.toList().subList(0, 10)
