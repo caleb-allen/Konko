@@ -4,12 +4,12 @@ Konko is a Kotlin library aiming to give users the power and flexibility of [rea
 
 Konko-Flow aims to have a similar API to the RxJava equivalent Flowable. Flow is in an early stage and the API is likely to change.
 ### Examples ###
-```
+```kotlin
 val a = listOf(0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10)
         Flow.from(a)
+                .filter { it % 2 == 0 }
                 // partitions the data flow into multiple streams, on which future operations will run concurrently
                 .partition()
-                .filter { it % 2 == 0 }
                 .map { "$it says hi!" }
                 .forEach { println(it) }
 ```
